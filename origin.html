@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In Motion // The Origin Canvas</title>
+    <style>
+        :root {
+            /* Legacy Dark Base & Crimson Atmosphere */
+            --bg-base: #06080c;
+            --crimson-glow: #6a0005;
+            --crimson-bright: #b8000a;
+            --text-main: #f5f6f8;
+            --text-muted: rgba(245, 246, 248, 0.45);
+            --border-line: rgba(255, 255, 255, 0.08);
+            
+            /* High-Contrast Cream Frame Tones */
+            --cream-card-bg: #fbf9f3;
+            --cream-accent: #f4f1e6;
+            --cream-muted: #e6dfc8;
+            --charcoal-text: #11151c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-base);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+            color: var(--text-main);
+            cursor: none !important;
+        }
+
+        .shared-screen-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-line);
+            background: rgba(6, 8, 12, 0.82);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .shared-screen-bar.bottom-bar {
+            top: auto;
+            bottom: 0;
+            border-bottom: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 20px 40px;
+        }
+
+        .shared-screen-bar .bar-link,
+        .shared-screen-bar .bar-title,
+        .shared-screen-bar .bar-meta {
+            font-family: monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .shared-screen-bar .bar-link {
+            color: var(--text-main);
+            text-decoration: none;
+            letter-spacing: 2px;
+            transition: color 0.3s ease;
+        }
+
+        .shared-screen-bar .bar-link:hover {
+            color: var(--crimson-bright);
+        }
+
+        .shared-screen-bar .bar-title,
+        .shared-screen-bar .bar-meta {
+            color: rgba(245, 246, 248, 0.68);
+            letter-spacing: 3px;
+        }
+
+        a, button, .interactive {
+            cursor: none !important;
+        }
+
+        /* --- BACKGROUND MATRIX --- */
+        .abstract-ambience {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            overflow: hidden;
+            background: 
+                radial-gradient(circle at 75% 35%, var(--crimson-glow) 0%, transparent 45%),
+                radial-gradient(circle at 20% 65%, #2a0003 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, #0d1117 0%, var(--bg-base) 100%);
+        }
+
+        .grain-overlay {
+            position: fixed;
+            inset: -50%;
+            width: 200%; height: 200%;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.06;                 
+            mix-blend-mode: overlay;        
+            pointer-events: none;
+            z-index: 99997; 
+            animation: shimmer 0.15s steps(2) infinite;
+        }
+        @keyframes shimmer {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(-0.5%, 1%); }
+            100% { transform: translate(1%, -0.5%); }
+        }
+
+        /* --- HYBRID INTERACTIVE CURSOR AURA --- */
+        #blobCursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 22px; 
+    height: 22px;
+    pointer-events: none;
+    z-index: 99999;
+    mix-blend-mode: screen;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    will-change: transform;
+}
+
+#blobCursor::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 6px rgba(255, 68, 0, 0.5);
+    transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+}
+
+#blobCursor::after {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 6px rgba(255, 68, 0, 0.5);
+    transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.crosshair-core {
+    position: absolute;
+    width: 2.5px;
+    height: 2.5px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #ffffff;
+    z-index: 2;
+    transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+}
+
+#blobCursor .crosshair-ring {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 1px dashed rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(255, 119, 0, 0.3);
+    animation: targetSpin 8s linear infinite;
+    z-index: 1;
+    transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#blobCursor.is-clicked::before { transform: scaleX(1.4); }
+#blobCursor.is-clicked::after { transform: scaleY(1.4); }
+#blobCursor.is-clicked .crosshair-core { transform: scale(1.6); }
+#blobCursor.is-clicked .crosshair-ring { transform: scale(1.35); }
+
+@keyframes targetSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+        /* --- STAGE CONFIGURATION --- */
+        .canvas-wrapper {
+            position: relative;
+            z-index: 5;
+            width: 100vw;
+            height: 100vh;
+            padding: 40px 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .origin-inline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-line);
+            padding-bottom: 15px;
+            height: 35px;
+        }
+
+        .back-nav {
+            font-family: monospace;
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: var(--text-main);
+            text-decoration: none;
+            text-transform: uppercase;
+            transition: color 0.3s ease;
+        }
+        .back-nav:hover { color: var(--cream-accent); }
+
+        .canvas-title {
+            font-family: monospace;
+            font-size: 12px;
+            letter-spacing: 4px;
+            color: var(--text-muted);
+        }
+
+        /* --- CENTRAL STAGE --- */
+        .exhibition-space {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: calc(100% - 175px);
+            margin: 30px auto;
+            width: 100%;
+            max-width: 1500px;
+            padding: 0 60px;
+        }
+
+        .text-spread-runway {
+            width: 55%; 
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .narrative-dynamic-stage {
+            position: relative;
+            width: 100%;
+            height: 420px; 
+        }
+
+        .fragment-pane {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-10px);
+            transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .fragment-pane.is-active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+        }
+
+        .fragment-pane h2 {
+            font-family: "Georgia", serif;
+            font-size: 54px;
+            font-weight: 300;
+            letter-spacing: -0.5px;
+            margin-bottom: 28px;
+            color: #ffffff;
+            font-style: italic;
+        }
+
+        .fragment-pane p {
+            font-size: 17px;
+            line-height: 1.85;
+            color: rgba(245, 246, 248, 0.75);
+            margin-bottom: 20px;
+            font-weight: 300;
+            letter-spacing: 0.1px;
+        }
+
+        /* RIGHT COLUMN: PORTRAIT SCULPTURE */
+        .portrait-sculpture {
+            width: 40%; 
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            height: 100%;
+        }
+
+        /* RE-DEFINED: Card is now cream to match the bright profile photo */
+        .fineart-portrait-card {
+            width: 100%;
+            max-width: 440px;
+            height: 100%;
+            max-height: 640px;
+            background: linear-gradient(145deg, var(--cream-card-bg), var(--cream-muted));
+            border: 1px solid #ffffff;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.7);
+        }
+
+        .fineart-portrait-card::before {
+            content: '+';
+            position: absolute;
+            top: -8px; left: -5px;
+            font-family: monospace;
+            font-size: 14px;
+            color: var(--crimson-bright); 
+        }
+
+        .portrait-lens {
+            width: 100%;
+            aspect-ratio: 3 / 4; 
+            background: #11151c;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .portrait-lens img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.95;
+            transition: all 0.5s ease;
+        }
+
+        .fineart-portrait-card:hover .portrait-lens img {
+            opacity: 1;
+        }
+
+        /* Typography inside the cream card transitions to dark slate charcoal */
+        .portrait-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .identity-signature {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .identity-signature h3 {
+            font-family: "Georgia", serif;
+            font-style: italic;
+            font-weight: 500;
+            font-size: 24px;
+            color: var(--charcoal-text);
+        }
+
+        .identity-signature span {
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--charcoal-text);
+            background: rgba(17, 21, 28, 0.06);
+            padding: 4px 10px;
+            border: 1px solid rgba(17, 21, 28, 0.15);
+        }
+
+        .minimal-stats-strip {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            border-top: 1px solid rgba(17, 21, 28, 0.1);
+            padding-top: 18px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .stat-node {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-node label {
+            color: #686e7a;
+            font-size: 10px;
+        }
+
+        .stat-node span {
+            color: var(--charcoal-text);
+            font-weight: 500;
+        }
+
+        .artistic-bullets {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 1px solid rgba(17, 21, 28, 0.1);
+            padding-top: 18px;
+        }
+
+        .bullets-heading {
+            font-family: monospace;
+            font-size: 10px;
+            color: #686e7a;
+            text-transform: uppercase;
+        }
+
+        .bullets-flex {
+            display: flex;
+            gap: 10px;
+        }
+
+        .bullet-tag-node {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--charcoal-text);
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(17, 21, 28, 0.15);
+            padding: 5px 12px;
+            font-weight: 500;
+        }
+
+        /* --- LOWER NAV DECK & RUNWAY HOUSING --- */
+        .system-dock-housing {
+            width: 100%;
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 0 60px;
+            z-index: 10;
+            position: relative;
+            top: -70px;
+        }
+
+        .navigation-dock {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            border-top: 1px solid var(--border-line);
+            padding-top: 20px;
+            margin-bottom: 12px;
+        }
+
+        .dock-tab-btn {
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 10px 0;
+            color: var(--text-muted);
+            font-family: monospace;
+            transition: all 0.3s ease;
+            border-top: 2px solid transparent;
+            margin-top: -22px; 
+        }
+
+        .dock-tab-btn:hover, .dock-tab-btn.is-active {
+            color: #ffffff;
+            border-top-color: var(--crimson-bright);
+        }
+
+        .dock-tab-btn span {
+            display: block;
+            font-size: 11px;
+            color: var(--cream-muted); /* Page index indices accented in vanilla cream */
+            margin-bottom: 4px;
+        }
+
+        .dock-tab-btn label {
+            font-size: 13px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .origin-footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 10px;
+            height: 40px;
+        }
+
+        .manifesto-block {
+            max-width: 800px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+        .manifesto-block span {
+            color: var(--cream-accent); /* Manifesto pop highlight */
+        }
+
+        .canvas-stamp {
+            font-family: monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.15);
+        }
+
+        .origin-lifted-bar {
+            bottom: 64px;
+        }
+
+        @media (max-width: 900px) {
+            .system-dock-housing {
+                top: -44px;
+            }
+
+            .origin-lifted-bar {
+                bottom: 40px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="chrome.css">
+</head>
+<body>
+<header class="shared-screen-bar">
+    <a class="bar-link" href="index.html">← HOME</a>
+    <div class="bar-title">THE ORIGIN</div>
+</header>
+
+    <div class="abstract-ambience"></div>
+    <div class="grain-overlay"></div>
+
+    <div id="blobCursor">
+        <div class="crosshair-core"></div>
+        <div class="crosshair-ring"></div>
+    </div>
+
+    <div class="canvas-wrapper">
+
+        <main class="exhibition-space">
+            
+            <div class="text-spread-runway">
+                <div class="narrative-dynamic-stage">
+                    <!-- Fragment 1 -->
+                    <div id="frag1" class="fragment-pane is-active">
+                        <h2>Origin</h2>
+                        <p>I have always been drawn to things that are hard to explain.</p>
+                        <p>Growing up, I often felt caught between two worlds. Being born and raised in a Western environment as the only Asian kid around me, I became familiar with what it felt like to be different. I often felt like I was standing slightly outside the frame—present, but never fully seen.</p>
+                        <p>Because of that, I started noticing things other people often overlooked: small shifts in expression, silence, and the emotions hidden underneath words. I learned that even when nothing seems visible on the surface, there is often so much happening underneath.</p>
+                    </div>
+
+                    <!-- Fragment 2 -->
+                    <div id="frag2" class="fragment-pane">
+                        <h2>Expression</h2>
+                        <p>When words failed me, art became my voice.</p>
+                        <p>There were many thoughts and emotions I struggled to express, especially during times when I felt isolated or misunderstood. Creating became the one place where I didn’t have to explain myself to be understood.</p>
+                        <p>Through art, I found a way to release emotions that felt too complicated or too heavy to put into words. It became more than just a hobby—it became both an outlet and a reflection of who I was.</p>
+                    </div>
+
+                    <!-- Fragment 3 -->
+                    <div id="frag3" class="fragment-pane">
+                        <h2>Projection</h2>
+                        <p>Because of this, I naturally put parts of myself into everything I create.</p>
+                        <p>Every character, visual idea, and story I make carries pieces of my own experiences, emotions, and questions. My work is deeply personal, even when it doesn’t seem obvious at first.</p>
+                        <p>Even if a story is fictional, the emotions behind it are real.</p>
+                    </div>
+
+                    <!-- Fragment 4 -->
+                    <div id="frag4" class="fragment-pane">
+                        <h2>From Idea to World</h2>
+                        <p>I am fascinated by the process of giving shape to things that cannot be seen.</p>
+                        <p>A lot of my ideas begin as feelings, fleeting thoughts, or random mental images that are difficult to explain. What I love most about animation and concept creation is turning those fragments into something real—something people can see, feel, and connect with.</p>
+                        <p>I especially enjoy the early stages of creating, when ideas are still rough and full of possibilities. I love experimenting with symbolism, visual metaphors, color, and composition to build meaning beyond what is directly shown.</p>
+                    </div>
+
+                    <!-- Fragment 5 -->
+                    <div id="frag5" class="fragment-pane">
+                        <h2>Vision</h2>
+                        <p>I create not just to make something visually appealing, but to make people feel seen.</p>
+                        <p>I want my work to resonate with people who have felt misunderstood, disconnected, or caught between identities. I believe art can create space for emotions that are hard to describe but deeply human.</p>
+                        <p>Through every sketch, frame, and story, I continue exploring the space between what is visible and what is felt.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="portrait-sculpture">
+                <div class="fineart-portrait-card">
+                    <div class="portrait-lens">
+                        <img src="me.png" alt="Portfolio Specimen" onerror="this.style.opacity='0.85';">
+                    </div>
+
+                    <div class="portrait-meta">
+                        <div class="identity-signature">
+                            <h3>Hi! Ander here</h3>
+                            <span>TRAN BAO ANH</span>
+                        </div>
+
+                        <div class="minimal-stats-strip">
+                            <div class="stat-node">
+                                <label>BIRTHDAY</label>
+                                <span>07/05/2008</span>
+                            </div>
+                            <div class="stat-node">
+                                <label>ZODIAC</label>
+                                <span>Taurus</span>
+                            </div>
+                            <div class="stat-node">
+                                <label>MBTI ENGINE</label>
+                                <span>ENFJ</span>
+                            </div>
+                            <div class="stat-node">
+                                <label>LOCATION</label>
+                                <span>HCM City</span>
+                            </div>
+                        </div>
+
+                        <div class="artistic-bullets">
+                            <div class="bullets-heading">System Languages</div>
+                            <div class="bullets-flex">
+                                <div class="bullet-tag-node">VN // NATIVE</div>
+                                <div class="bullet-tag-node">EN // ADVANCED</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <div class="system-dock-housing">
+            <nav class="navigation-dock">
+                <button class="dock-tab-btn is-active" onclick="switchFragment(this, 'frag1')">
+                    <span>// 01</span><label>Origin</label>
+                </button>
+                <button class="dock-tab-btn" onclick="switchFragment(this, 'frag2')">
+                    <span>// 02</span><label>Expression</label>
+                </button>
+                <button class="dock-tab-btn" onclick="switchFragment(this, 'frag3')">
+                    <span>// 03</span><label>Projection</label>
+                </button>
+                <button class="dock-tab-btn" onclick="switchFragment(this, 'frag4')">
+                    <span>// 04</span><label>Process</label>
+                </button>
+                <button class="dock-tab-btn" onclick="switchFragment(this, 'frag5')">
+                    <span>// 05</span><label>Vision</label>
+                </button>
+            </nav>
+
+            <div class="origin-footer-content">
+                <div class="manifesto-block">
+                    <span>Everything I create carries a part of me—my memories, emotions, and thoughts.</span> I hope that somewhere in these pages, you found something that resonated with you.
+                </div>
+                <div class="canvas-stamp">
+                    © 2026 // THE ORIGIN
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Advance the guided tutorial when this page is reached.
+        if (sessionStorage.getItem('tutorialProgress') === '6') {
+            sessionStorage.setItem('tutorialProgress', '7');
+        }
+
+        function switchFragment(button, targetId) {
+            const panes = document.querySelectorAll('.fragment-pane');
+            const anchors = document.querySelectorAll('.dock-tab-btn');
+            
+            panes.forEach(pane => pane.classList.remove('is-active'));
+            anchors.forEach(anchor => anchor.classList.remove('is-active'));
+            
+            document.getElementById(targetId).classList.add('is-active');
+            button.classList.add('is-active');
+        }
+
+        const cursor = document.getElementById('blobCursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.transform = `translate3d(${e.clientX - 14}px, ${e.clientY - 14}px, 0)`;
+        });
+    </script>
+    <footer class="shared-screen-bar bottom-bar origin-lifted-bar">
+        <span class="bar-meta">WHAT WAS ALWAYS THERE</span>
+        <span class="bar-meta">ORIGIN / PROFILE</span>
+    </footer>
+    
+</body>
+</html>

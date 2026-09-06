@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dialogue // Chronology of Space</title>
+    <style>
+        :root {
+            --bg-base: #06080c;
+            --crimson-glow: #4a0003;
+            --crimson-bright: #b8000a;
+            --text-main: #f5f6f8;
+            --text-muted: rgba(245, 246, 248, 0.45);
+            --border-line: rgba(255, 255, 255, 0.08);
+            
+            --cream-card-bg: #fbf9f3;
+            --cream-accent: #f4f1e6;
+            --cream-muted: #e6dfc8;
+            --charcoal-text: #11151c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            background-color: var(--bg-base);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+            color: var(--text-main);
+            scroll-behavior: smooth;
+            cursor: none !important;
+        }
+
+        a, button, .node-header-trigger, .gallery-trigger-btn {
+            cursor: none !important;
+        }
+
+        #blobCursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 22px;
+            height: 22px;
+            pointer-events: none;
+            z-index: 2000;
+            mix-blend-mode: screen;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            will-change: transform;
+        }
+
+        #blobCursor::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 6px rgba(255, 68, 0, 0.5);
+            transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #blobCursor::after {
+            content: "";
+            position: absolute;
+            width: 1px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 6px rgba(255, 68, 0, 0.5);
+            transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .crosshair-core {
+            position: absolute;
+            width: 2.5px;
+            height: 2.5px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ffffff;
+            z-index: 2;
+            transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #blobCursor .crosshair-ring {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 1px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
+            animation: targetSpin 8s linear infinite;
+            z-index: 1;
+            transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #blobCursor.is-clicked::before { transform: scaleX(1.4); }
+        #blobCursor.is-clicked::after { transform: scaleY(1.4); }
+        #blobCursor.is-clicked .crosshair-core { transform: scale(1.6); }
+        #blobCursor.is-clicked .crosshair-ring { transform: scale(1.35); }
+
+        @keyframes targetSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* --- IMMERSIVE BACKGROUND LAYER --- */
+        .abstract-ambience {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            overflow: hidden;
+            background: 
+                radial-gradient(circle at 80% 20%, var(--crimson-glow) 0%, transparent 50%),
+                radial-gradient(circle at 15% 75%, #2a0003 0%, transparent 60%),
+                radial-gradient(circle at 50% 50%, #0d1117 0%, var(--bg-base) 100%);
+            pointer-events: none;
+        }
+
+        .grain-overlay {
+            position: fixed;
+            inset: -50%;
+            width: 200%; height: 200%;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.05;                  
+            mix-blend-mode: overlay;        
+            pointer-events: none;
+            z-index: 999; 
+            animation: shimmer 0.15s steps(2) infinite;
+        }
+        @keyframes shimmer {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(-0.5%, 1%); }
+            100% { transform: translate(1%, -0.5%); }
+        }
+
+        /* --- FIXED MATRIX INFRASTRUCTURE --- */
+        .frame-header {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-line);
+            background: rgba(6, 8, 12, 0.82);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .back-nav {
+            font-family: monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--text-main);
+            text-decoration: none;
+            text-transform: uppercase;
+            transition: color 0.3s ease;
+        }
+        .back-nav:hover { color: var(--cream-accent); }
+
+        .page-title {
+            font-family: monospace;
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: var(--text-muted);
+        }
+
+        /* --- EDITORIAL COMPETENCIES MATRIX --- */
+        .skills-manifesto {
+            padding: 180px 60px 60px 60px;
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        .matrix-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px 60px;
+            margin-top: 32px;
+            border-top: 1px solid var(--border-line);
+            padding-top: 40px;
+        }
+
+        .matrix-row {
+            display: flex;
+            align-items: baseline;
+            gap: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .matrix-row::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0; width: 0; height: 1px;
+            background: var(--crimson-bright);
+            transition: width 0.4s ease;
+        }
+        .matrix-row:hover::after { width: 100%; }
+
+        .matrix-num {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--crimson-bright);
+            font-weight: 600;
+        }
+
+        .matrix-label {
+            font-family: "Georgia", serif;
+            font-size: 21px;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+        }
+
+        .matrix-tag {
+            font-family: monospace;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-left: auto;
+            text-transform: uppercase;
+        }
+
+        /* --- CHRONOLOGY RUNWAY SCROLLWAY --- */
+        .timeline-runway {
+            position: relative;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px;
+            z-index: 10;
+        }
+
+        .timeline-spine {
+            position: absolute;
+            left: 200px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, var(--border-line) 5%, var(--border-line) 95%, transparent);
+        }
+
+        .dialogue-node {
+            position: relative;
+            display: grid;
+            grid-template-columns: 140px 120px 1fr;
+            gap: 40px;
+            margin-bottom: 80px;
+        }
+
+        .node-year {
+            font-family: "Georgia", serif;
+            font-size: 32px;
+            font-style: italic;
+            color: var(--crimson-bright);
+            opacity: 0.8;
+            text-align: right;
+            padding-top: 4px;
+        }
+
+        .node-marker {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            padding-top: 18px;
+        }
+
+        .node-marker::before {
+            content: '';
+            position: absolute;
+            width: 9px; height: 9px;
+            background: var(--bg-base);
+            border: 2px solid var(--text-main);
+            border-radius: 50%;
+            z-index: 5;
+            transition: all 0.4s ease;
+        }
+
+        .dialogue-node:hover .node-marker::before {
+            background: var(--crimson-bright);
+            border-color: var(--crimson-bright);
+            box-shadow: 0 0 12px var(--crimson-bright);
+        }
+
+        /* --- PROJECT BOX CONTROLS & LAYOUT --- */
+        .node-content-box {
+            background: transparent;
+            border-left: 2px solid transparent;
+            padding-left: 30px;
+            transition: border-color 0.4s ease;
+        }
+
+        .node-header-trigger {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .project-meta-label {
+            font-family: monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .node-content-box h2 {
+    /* Added "Times New Roman" and system serif fallbacks to fix the Vietnamese diacritic tracking bug */
+    font-family: "Georgia", "Times New Roman", -apple-system-serif, serif;
+    font-size: 40px;
+    font-weight: 300;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+    margin-bottom: 6px;
+}
+
+        .toggle-status-icon {
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--text-muted);
+            padding-top: 15px;
+            transition: color 0.3s ease;
+        }
+        .node-header-trigger:hover .toggle-status-icon { color: var(--crimson-bright); }
+
+        /* Narratives Smooth Drawers */
+        .narrative-drawer {
+            max-height: 2000px; 
+            overflow: hidden;
+            transition: max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+            opacity: 1;
+        }
+
+        .project-narrative {
+            font-size: 15px;
+            line-height: 1.85;
+            color: rgba(245, 246, 248, 0.75);
+            max-width: 780px;
+            padding: 15px 0;
+        }
+        .project-narrative p { margin-bottom: 16px; }
+
+        /* --- THE GALLERY ARCHIVE VAULT LAYER --- */
+        .gallery-trigger-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-line);
+            padding: 12px 24px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--cream-accent);
+            text-transform: uppercase;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .gallery-trigger-btn:hover {
+            background: transparent;
+            border-color: var(--crimson-bright);
+            box-shadow: 0 0 15px rgba(184, 0, 10, 0.2);
+            color: #ffffff;
+        }
+
+        .gallery-drawer {
+            max-height: 0px;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+            border-top: 1px dashed transparent;
+            padding-top: 0;
+        }
+
+        /* Dynamic Classes triggered by JS */
+        .node-content-box.narrative-collapsed .narrative-drawer {
+            max-height: 0px !important;
+            opacity: 0;
+        }
+        .node-content-box.gallery-expanded .gallery-drawer {
+            max-height: 3500px;
+            opacity: 1;
+            border-color: var(--border-line);
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+        /* Structural Mixed Layout Showcase Media Grid */
+        /* Update the Matrix to allow 2 columns */
+.gallery-media-matrix {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr); /* Keep the 12-column system */
+    gap: 20px;
+}
+
+/* Force each item to take exactly half the width (6 out of 12 columns) */
+.media-half-width {
+    grid-column: span 6; 
+    height: 300px; /* Set your fixed height here */
+    border: 1px solid var(--border-line);
+    position: relative;
+    overflow: hidden;
+}
+
+        
+
+        .media-wide  { grid-column: span 8; }
+        .media-tall  { grid-column: span 4; min-height: 460px; grid-row: span 2; }
+        .media-small { grid-column: span 4; }
+        .media-full  { grid-column: span 12; min-height: 400px; }
+
+        /* 1. Base Frame: Uses Flexbox to stack media + caption */
+/* 1. Remove the forced height on the container */
+.media-frame {
+    /* Set a base max-height to keep them uniform */
+    max-height: 400px;
+    
+    /* Let the width be determined by the content itself */
+    flex: 0 0 auto; 
+    
+    /* Keep your existing border/background styles */
+    border: 1px solid var(--border-line);
+    background: rgba(255, 255, 255, 0.01);
+    position: relative;
+    overflow: hidden;
+}
+
+.media-half-width img, 
+.media-half-width video {
+    width: 100%;       /* Fill the 6-column width */
+    height: 100%;      /* Fill the 300px height */
+    object-fit: cover; /* This ensures they look like perfect rectangles */
+    display: block;
+}
+
+/* Ensure the caption stays at the bottom of the content */
+.media-caption {
+    width: 100%;
+    font-family: monospace;
+    font-size: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-line);
+    box-sizing: border-box;
+}
+
+/* 4. Grid Adjustment: Ensure the frame fills the grid cell */
+.media-small { 
+    grid-column: span 4; 
+    height: 100%; /* Fill the grid cell height */
+}
+
+/* Interaction */
+.media-frame:hover img, .media-frame:hover video {
+    opacity: 1;
+    transform: scale(1.01);
+}
+
+    
+       
+        
+
+.media-small video {
+    max-height: 400px;  /* Video itself cannot exceed the limit */
+    width: auto;        /* Allows the width to scale naturally */
+    height: auto;       /* Maintains aspect ratio */
+    display: block;
+}
+
+
+        .external-vault-link {
+            grid-column: span 12;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px;
+            border: 1px dashed var(--border-line);
+            text-decoration: none;
+            color: var(--cream-accent);
+            font-family: monospace;
+            font-size: 12px;
+            letter-spacing: 1px;
+            transition: background 0.3s ease;
+        }
+        .external-vault-link:hover {
+            background: rgba(255,255,255,0.02);
+            color: #ffffff;
+            border-color: var(--crimson-bright);
+        }
+
+        /* --- THE ABSTRACT CREAM HIGHLIGHT PIECE --- */
+        .node-content-box.cream-accentuation {
+            background: linear-gradient(145deg, var(--cream-card-bg), var(--cream-accent));
+            padding: 40px;
+            border: none !important;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+        .node-content-box.cream-accentuation h2 { color: var(--charcoal-text); }
+        .node-content-box.cream-accentuation .project-narrative { color: rgba(17, 21, 28, 0.85); }
+        .node-content-box.cream-accentuation .project-meta-label { color: rgba(17, 21, 28, 0.5); }
+        .node-content-box.cream-accentuation .toggle-status-icon { color: rgba(17, 21, 28, 0.4); }
+        .node-content-box.cream-accentuation .gallery-trigger-btn {
+            background: rgba(17, 21, 28, 0.05);
+            border-color: rgba(17, 21, 28, 0.15);
+            color: var(--charcoal-text);
+        }
+        .node-content-box.cream-accentuation .gallery-trigger-btn:hover {
+            background: var(--charcoal-text);
+            color: #ffffff;
+        }
+        .node-content-box.cream-accentuation .media-caption {
+            background: var(--cream-card-bg);
+            color: var(--charcoal-text);
+        }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 40px;
+            border-top: 1px solid var(--border-line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: rgba(6, 8, 12, 0.82);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .footer-stamp {
+            font-family: monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.15);
+        }
+/* # targets the unique ID 'media-lightbox' */
+#media-lightbox {
+    display: none; 
+    position: fixed;
+    z-index: 1000;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0,0,0,0.95);
+    justify-content: center;
+    align-items: center;
+}
+
+/* # targets the unique ID 'lightbox-content' */
+#lightbox-content {
+    width: 90vw;
+    height: 80vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Forces media to fill the stage */
+#lightbox-content img, 
+#lightbox-content video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important; /* Change to 'cover' if you want zero black bars */
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001; /* Keeps it above the content */
+    transition: 0.3s;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    color: var(--crimson-bright); /* Matches your project's color theme */
+    text-decoration: none;
+}
+
+        @media (max-width: 1024px) {
+            .matrix-container { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 900px) {
+            .timeline-spine { left: 40px; }
+            .dialogue-node {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                margin-bottom: 50px;
+            }
+            .node-year { text-align: left; padding-left: 60px; }
+            .node-marker { display: none; }
+            .node-content-box { padding-left: 60px; }
+            .matrix-container { grid-template-columns: 1fr; gap: 20px; }
+            .frame-header { padding: 20px; }
+            .skills-manifesto { padding: 120px 20px 20px 20px; }
+            .timeline-runway { padding: 20px; }
+            .media-wide, .media-tall, .media-small { grid-column: span 12; }
+        }
+        /* --- PINTEREST-STYLE MASONRY GALLERY SYSTEM --- */
+.personal-artbook-showcase {
+    max-width: 1400px;
+    margin: 80px auto 40px auto;
+    padding: 0 60px;
+    position: relative;
+    z-index: 10;
+}
+
+.artbook-header {
+    margin-bottom: 40px;
+    border-top: 1px dashed var(--border-line);
+    padding-top: 40px;
+}
+
+.artbook-header h2 {
+    font-family: "Georgia", "Times New Roman", serif;
+    font-size: 48px;
+    font-weight: 300;
+    letter-spacing: -1px;
+    color: #ffffff;
+}
+
+.masonry-pinterest-grid {
+    column-count: 3; /* Controls columns */
+    column-gap: 24px;
+    width: 100%;
+}
+
+.masonry-brick {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-line);
+    display: inline-block; /* Crucial for masonry flow */
+    width: 100%;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.4s ease;
+}
+
+.masonry-brick:hover {
+    border-color: var(--crimson-bright);
+}
+
+.masonry-brick img {
+    width: 100%;
+    height: auto; /* Allows height to scale naturally */
+    display: block;
+    opacity: 0.75;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.masonry-brick:hover img {
+    opacity: 1;
+    transform: scale(1.01);
+}
+
+.button-group {
+    display: flex;
+    gap: 15px; /* Adds space between the buttons */
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.action-btn {
+    background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-line);
+            padding: 10px 20px;
+            font-family: monospace;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .node-content-box.cream-accentuation .action-btn {
+            color: var(--charcoal-text);
+            border-color: rgba(17, 21, 28, 0.2);
+            background: rgba(17, 21, 28, 0.04);
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--crimson-bright);
+        }
+
+        .node-content-box.cream-accentuation .action-btn:hover {
+            background: var(--charcoal-text);
+            color: #ffffff;
+            border-color: var(--charcoal-text);
+        }
+
+/* Responsive adjustment for mobile */
+@media (max-width: 1024px) {
+    .masonry-pinterest-grid { column-count: 2; }
+}
+
+@media (max-width: 900px) {
+    .masonry-pinterest-grid { column-count: 1; }
+}
+    </style>
+    <link rel="stylesheet" href="chrome.css">
+</head>
+<body>
+
+    <div id="blobCursor">
+        <div class="crosshair-core"></div>
+        <div class="crosshair-ring"></div>
+    </div>
+
+    <div class="abstract-ambience"></div>
+    <div class="grain-overlay"></div>
+
+    <header class="frame-header">
+        <a href="index.html" class="back-nav">← HOME</a>
+        <div class="page-title">THE DIALOGUE</div>
+    </header>
+
+    <!-- NEW FINE ART EDITORIAL DOSSIER MATRIX -->
+    <section class="skills-manifesto">
+        <div class="project-meta-label">// Competencies Matrix</div>
+        <div class="matrix-container">
+            <div class="matrix-row">
+                <span class="matrix-num">01</span>
+                <span class="matrix-label">Traditional Illustration</span>
+                <span class="matrix-tag">CORE</span>
+            </div>
+            <div class="matrix-row">
+                <span class="matrix-num">02</span>
+                <span class="matrix-label">Film</span>
+                <span class="matrix-tag">EXP</span>
+            </div>
+            <div class="matrix-row">
+                <span class="matrix-num">03</span>
+                <span class="matrix-label">Animation</span>
+                <span class="matrix-tag">CORE</span>
+            </div>
+            <div class="matrix-row">
+                <span class="matrix-num">04</span>
+                <span class="matrix-label">3D Sculpting</span>
+                <span class="matrix-tag">TECH</span>
+            </div>
+            <div class="matrix-row">
+                <span class="matrix-num">05</span>
+                <span class="matrix-label">Concept Design</span>
+                <span class="matrix-tag">VISN</span>
+            </div>
+            <div class="matrix-row">
+                <span class="matrix-num">06</span>
+                <span class="matrix-label">Digital Illustration</span>
+                <span class="matrix-tag">CORE</span>
+            </div>
+            <div class="matrix-row">
+                <span class="matrix-num">07</span>
+                <span class="matrix-label">Layout Design</span>
+                <span class="matrix-tag">STRUC</span>
+            </div>
+            <div class="matrix-row">
+                <span class="matrix-num">08</span>
+                <span class="matrix-label">Video Editing</span>
+                <span class="matrix-tag">POST</span>
+            </div>
+            <div class="matrix-row">
+                <span class="matrix-num">09</span>
+                <span class="matrix-label">Design Thinking</span>
+                <span class="matrix-tag">SYST</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- CHRONOLOGICAL RUNWAY -->
+    <main class="timeline-runway">
+        <div class="timeline-spine"></div>
+
+        <!-- 1. MEDIA -->
+        <div class="dialogue-node">
+            <div class="node-year">2021 — 23</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-media">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-media')">
+                    <div>
+                        <div class="project-meta-label">DESIGNER / ANIMATOR</div>
+                        <h2>Media</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>Media was my first real experience working in a creative team within school. As part of the design team, I created digital promotional posts and short 2–3 minute animations for the school’s official platforms.</p>
+                        <p>This experience taught me how to communicate visually under constraints—balancing aesthetics with clarity, deadlines, and audience engagement. It also introduced me to collaborative production pipelines and strengthened my foundation in motion design.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-media')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <a href="https://www.facebook.com/truongdinhthienly" target="_blank" class="action-btn">[ VISIT WEBSITE ]</a>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/media/IMG_2153.JPG" onclick="openLightbox(this)" alt=""><div class="media-caption">Media Booklet cover</div></div>
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('video'))">
+    <video controls muted autoplay loop playsinline>
+        <source src="gallery/media/animation.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div class="media-caption">Anniversary Animation</div>
+</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. YEARBOOK -->
+        <div class="dialogue-node">
+            <div class="node-year">2021 — 24</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-yearbook">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-yearbook')">
+                    <div>
+                        <div class="project-meta-label">DESIGNER / HEAD DESIGNER</div>
+                        <h2>Yearbook</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>Working on the school yearbook played a major role in shaping my technical skills as a designer. I was responsible for designing page backgrounds, editing and enhancing images, and handling page layouts.</p>
+                        <p>Through this project, I became proficient in Adobe Photoshop and learned how to retouch images, correct visual inconsistencies, and build layouts that felt both organized and visually engaging. More importantly, it taught me how design can guide the viewer’s attention and shape the way stories are presented.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-yearbook')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <a href="https://lsts.edu.vn/san-pham-hoc-sinh/ky-yeu" target="_blank" class="action-btn">[ VISIT WEBSITE ]</a>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/Yearbook/Screenshot 2026-07-02 035223.png" alt=""><div class="media-caption">Media Booklet cover</div></div>
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/Yearbook/Screenshot 2026-07-02 035512.png" alt=""><div class="media-caption">Media Booklet cover</div></div>                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. MAC -->
+        <div class="dialogue-node">
+            <div class="node-year">2021</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-mac">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-mac')">
+                    <div>
+                        <div class="project-meta-label">CONCEPT ARTIST / ILLUSTRATOR</div>
+                        <h2>MAC</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>MAC was a school project created to promote the newly introduced house system through podcast content and digital media.</p>
+                        <p>My contribution focused on animating transition elements and creating visual assets to support the overall presentation. Although relatively small in scale, this project helped me better understand how motion can enhance pacing and viewer engagement.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-mac')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('video'))">
+    <video controls muted autoplay loop playsinline>
+        <source src="gallery/MAC/701DA65A-1A0E-4119-9090-E075CEAD961B.mov" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div class="media-caption">Anniversary Animation</div>     </div>                       
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. TREASURE COMMITTEE -->
+        <div class="dialogue-node">
+            <div class="node-year">2022 — 24,<br>2025 — 26</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-treasure">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-treasure')">
+                    <div>
+                        <div class="project-meta-label">DESIGNER</div>
+                        <h2>Treasure Committee</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>As part of Treasure House’s organizing committee, I worked in the design team to create promotional content for events and activities.</p>
+                        <p>I designed social media posts, announcements, and campaign visuals primarily for Instagram. This role strengthened my ability to design with branding consistency while adapting visuals for different event themes.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-treasure')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <a href="https://www.instagram.com/feat_treasure/" target="_blank" class="action-btn">[ VISIT WEBSITE ]</a>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/Treasure/IMG_7627.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/Treasure/IMG_8868.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. THE RENEWAL -->
+        <div class="dialogue-node">
+            <div class="node-year">2022</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-renewal">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-renewal')">
+                    <div>
+                        <div class="project-meta-label">ILLUSTRATOR</div>
+                        <h2>The Renewal</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>The Renewal was a small school initiative where I contributed as a designer for promotional materials.</p>
+                        <p>My work focused on creating visual posts for Facebook to help communicate the project’s identity and attract engagement. Though brief, it further developed my confidence in visual communication.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-renewal')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <a href="https://www.facebook.com/therenewal.org" target="_blank" class="action-btn">[ VISIT WEBSITE ]</a>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/The Renewal/IMG_7740.JPG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('video'))">
+    <video controls muted autoplay loop playsinline>
+        <source src="gallery/The Renewal/3..mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div class="media-caption">Anniversary Animation</div> </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. KHỞI SẮC -->
+        <div class="dialogue-node">
+            <div class="node-year">2023</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-khoisac">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-khoisac')">
+                    <div>
+                        <div class="project-meta-label">CONCEPT ARTIST / LEAD ANIMATOR</div>
+                        <h2>Khoi Sac</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>Khởi Sắc was one of the most memorable large-scale productions I worked on—a yearly musical/show organized by 12th-grade seniors.</p>
+                        <p>I was invited by a senior I previously worked with in Media to become the lead animator for the show’s background visuals and animated transitions. This project pushed me creatively and technically, requiring me to think about timing, atmosphere, and how visual movement supports live performance.</p>
+                        <p>It was one of my first experiences realizing how animation could shape emotional storytelling on a larger scale.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-khoisac')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <a href="https://www.instagram.com/khoisac.zip/" target="_blank" class="action-btn">[ VISIT WEBSITE ]</a>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('video'))">
+    <video controls muted autoplay loop playsinline>
+        <source src="gallery/KS/9F534E65-FB04-4618-997B-C0F4C050389F.mov" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div class="media-caption">Anniversary Animation</div> </div>
+    <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('video'))">
+    <video controls muted autoplay loop playsinline>
+        <source src="gallery/KS/F72D76BA-791E-4EDD-8585-25B5F0C07E45.mov" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div class="media-caption">Anniversary Animation</div> </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. COLORFUL KNS -->
+        <div class="dialogue-node">
+            <div class="node-year">2023</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-kns">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-kns')">
+                    <div>
+                        <div class="project-meta-label">ANIMATOR / DESIGNER</div>
+                        <h2>Colorful KNS</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>Colorful KNS was a school activity centered around life skills education for 11th graders.</p>
+                        <p>I contributed through animation and promotional design, creating visuals that were energetic, approachable, and engaging for students. This project strengthened my adaptability in designing for different audiences and purposes.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-kns')">[ VIEW MEDIA ARCHIVE ]</button>                    
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('video'))">
+    <video controls muted autoplay loop playsinline>
+        <source src="gallery/Colorful/nhnu.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div class="media-caption">Anniversary Animation</div> </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. ACES DEMAI (High Contrast Accent Display) -->
+        <div class="dialogue-node">
+            <div class="node-year">2024</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box cream-accentuation" id="node-demai">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-demai')">
+                    <div>
+                        <div class="project-meta-label">MAJOR INITIATIVE // HEAD DESIGNER / CONCEPT ARTIST / CO-FOUNDER</div>
+                        <h2>ACES DeMai</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>ACES DeMai is one of the most meaningful projects I have ever been part of.</p>
+                        <p>Together with four peers, I co-founded this initiative to support children affected by HIV. Our goal was not simply to raise awareness, but to challenge stigma and encourage people to see these children beyond the labels society places on them.</p>
+                        <p>We organized group activities where we spent time talking with the children—learning about their dreams, aspirations, and how they saw the future. From these conversations, we transformed their dreams into visual artworks by reimagining and illustrating them.</p>
+                        <p>These artworks were later showcased in a public exhibition at Đường Sách Thành phố Hồ Chí Minh.</p>
+                        <p>This project deeply changed my perspective on art.</p>
+                        <p>I realized that art is not only a tool for self-expression—it can also become a bridge between people. Through illustration and storytelling, we gave visibility to voices often overlooked and reminded viewers of something simple yet powerful: these children are not defined by HIV; they are human, with dreams, hopes, and futures worth believing in.</p>
+                        <p>ACES DeMai reinforced my belief that visual storytelling can create empathy, challenge prejudice, and spark meaningful dialogue.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-demai')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <a href="https://www.facebook.com/profile.php?id=61555145382279" target="_blank" class="action-btn">[ VISIT WEBSITE ]</a>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/Demai/IMG_8870.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/Demai/IMG_8871.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. ASIAN YOUTH FORUM -->
+        <div class="dialogue-node">
+            <div class="node-year">2024</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-ayf">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-ayf')">
+                    <div>
+                        <div class="project-meta-label">MERCH DESIGNER</div>
+                        <h2>Asian Youth Forum</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>The Asian Youth Forum is an international youth initiative held in a different Asian country each year, bringing together young people across cultures.</p>
+                        <p>I had the opportunity to contribute as one of the merchandise designers. Although my role was focused on design, being involved in an international project exposed me to cross-cultural collaboration and broadened my perspective on design communication.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-ayf')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/AYF/IMG_8872.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/AYF/IMG_8873.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10. ACES COB -->
+        <div class="dialogue-node">
+            <div class="node-year">2025</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-cob">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-cob')">
+                    <div>
+                        <div class="project-meta-label">HEAD DESIGNER / CONCEPT ARTIST</div>
+                        <h2>ACES COB</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>ACES COB is a fundraising initiative supporting children with heart conditions through music-based events and performances.</p>
+                        <p>My role focused on concept development and design direction. Although I was unfortunately unable to participate until the final stages due to internal challenges, the project still reinforced something important to me: creative skills carry responsibility, and design has value not only aesthetically but socially.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-cob')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <a href="https://www.facebook.com/circleofbeat" target="_blank" class="action-btn">[ VISIT WEBSITE ]</a>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/COB/IMG_8874.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/COB/IMG_8875.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 11. WHAT WAS ALWAYS THERE -->
+        <div class="dialogue-node">
+            <div class="node-year">2026</div>
+            <div class="node-marker"></div>
+            <div class="node-content-box" id="node-always">
+                <div class="node-header-trigger" onclick="toggleNarrative('node-always')">
+                    <div>
+                        <div class="project-meta-label">ANIMATOR / CONCEPT ARTIST / WEB DESIGNER</div>
+                        <h2>What Was Always There</h2>
+                    </div>
+                    <div class="toggle-status-icon">[ CLOSE ]</div>
+                </div>
+                <div class="narrative-drawer">
+                    <div class="project-narrative">
+                        <p>What Was Always There represents the culmination of my artistic growth so far.</p>
+                        <p>This portfolio is deeply personal—a reflection of my identity, experiences, and creative philosophy. It explores memory, emotion, and the invisible layers beneath what we see on the surface.</p>
+                        <p>More than a collection of work, this project is a dialogue between my inner world and the visual language I have spent years developing.</p>
+                        <p>It is both a portfolio and a statement of who I am as an artist today.</p>
+                    </div>
+                    <button class="gallery-trigger-btn" onclick="toggleGallery('node-always')">[ VIEW MEDIA ARCHIVE ]</button>
+                    <div class="gallery-drawer">
+                        <div class="gallery-media-matrix">
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/Always There/IMG_7981.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+                            <div class="media-frame media-half-width" onclick="openLightbox(this.querySelector('img'))"><img src="gallery/Always There/IMG_8882.PNG" alt=""><div class="media-caption">Media Booklet cover</div></div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    <section class="personal-artbook-showcase">
+    <div class="artbook-header">
+        <div class="project-meta-label">// CURATED ARCHIVE</div>
+        <h2>Notable Personal Artwork Gallery</h2>
+    </div>
+    
+    <div class="masonry-pinterest-grid">
+        <div class="masonry-brick" onclick="openLightbox(this.querySelector('img'))">
+            <img src="gallery/extra/IMG_8876.PNG" alt="Artwork">
+        </div>
+        <div class="masonry-brick" onclick="openLightbox(this.querySelector('img'))">
+            <img src="gallery/extra/IMG_8877.PNG" alt="Artwork">
+        </div>
+        <div class="masonry-brick" onclick="openLightbox(this.querySelector('img'))">
+            <img src="gallery/extra/IMG_8878.PNG" alt="Artwork">
+        </div>
+        <div class="masonry-brick" onclick="openLightbox(this.querySelector('img'))">
+            <img src="gallery/extra/IMG_8879.PNG" alt="Artwork">
+        </div>
+        <div class="masonry-brick" onclick="openLightbox(this.querySelector('img'))">
+            <img src="gallery/extra/IMG_8880.PNG" alt="Artwork">
+        </div>
+        <div class="masonry-brick" onclick="openLightbox(this.querySelector('img'))">
+            <img src="gallery/extra/IMG_8881.PNG" alt="Artwork">
+        </div>
+        </div>
+</section>
+<div id="media-lightbox" class="lightbox" onclick="closeLightbox()">
+    <span class="close-btn" onclick="closeLightbox()">&times;</span>
+    <div id="lightbox-content" onclick="event.stopPropagation()">
+        </div>
+</div>
+
+    <footer>
+        <div class="page-title">WHAT WAS ALWAYS THERE</div>
+        <div class="footer-stamp">DIALOGUE / CHRONOLOGY</div>
+    </footer>
+
+    <script>
+        // Advance the guided tutorial when this page is reached.
+        if (sessionStorage.getItem('tutorialProgress') === '5') {
+            sessionStorage.setItem('tutorialProgress', '6');
+        }
+
+        function toggleNarrative(id) {
+            const container = document.getElementById(id);
+            container.classList.toggle('narrative-collapsed');
+            
+            const icon = container.querySelector('.node-header-trigger .toggle-status-icon');
+            if(container.classList.contains('narrative-collapsed')) {
+                icon.textContent = '[ OPEN ]';
+            } else {
+                icon.textContent = '[ CLOSE ]';
+            }
+        }
+
+        function toggleGallery(id) {
+            const container = document.getElementById(id);
+            container.classList.toggle('gallery-expanded');
+            
+            const btn = container.querySelector('.gallery-trigger-btn');
+            if(container.classList.contains('gallery-expanded')) {
+                btn.textContent = '[ ▢ CLOSE MEDIA ARCHIVE ]';
+            } else {
+                btn.textContent = '[ VIEW MEDIA ARCHIVE ]';
+            }
+        }
+        // Function to open the zoom
+function openLightbox(element) {
+    const lightbox = document.getElementById('media-lightbox');
+    const content = document.getElementById('lightbox-content');
+    
+    content.innerHTML = '';
+    
+    if (element.tagName === 'VIDEO') {
+        const video = document.createElement('video');
+        video.src = element.querySelector('source') ? element.querySelector('source').src : element.src;
+        video.controls = true;
+        
+        // --- ADD THESE LINES ---
+        video.autoplay = true;   // Forces the video to play
+        video.muted = true;      // Required for autoplay to work in browsers
+        video.loop = true;       // Optional: keeps it playing
+        // -----------------------
+        
+        content.appendChild(video);
+    } else {
+        // Image logic remains the same
+        const img = document.createElement('img');
+        img.src = element.src;
+        content.appendChild(img);
+    }
+    
+    lightbox.style.display = 'flex';
+}
+
+function closeLightbox() {
+    const lightbox = document.getElementById('media-lightbox');
+    lightbox.style.display = 'none';
+    // Stop video from playing in background when closed
+    const video = lightbox.querySelector('video');
+    if (video) video.pause();
+}
+
+const cursor = document.getElementById('blobCursor');
+if (cursor) {
+    document.addEventListener('mousemove', (e) => {
+        cursor.style.transform = `translate3d(${e.clientX - 11}px, ${e.clientY - 11}px, 0)`;
+    });
+
+    document.addEventListener('mousedown', () => {
+        cursor.classList.add('is-clicked');
+        clearTimeout(cursor._clickTimeout);
+        cursor._clickTimeout = setTimeout(() => {
+            cursor.classList.remove('is-clicked');
+        }, 120);
+    });
+}
+    </script>
+</body>
+</html>

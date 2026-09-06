@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Heart Interface</title>
+    <link rel="stylesheet" href="style.css">
+    <style id="global-cursor-hide">
+    html, body, * {
+        cursor: none !important;
+    }
+</style>
+</head>
+<body class="precover-active">
+<div id="pageTransitionOverlay"></div>
+    <div id="portfolioCoverScreen" aria-hidden="true">
+        <img id="portfolioCoverImage" src="Portfolio cover.PNG" alt="Portfolio Cover">
+    </div>
+    <div id="loadingScreen">
+        <div class="loader-content">
+            <div class="loader-title">WhatWasAlwaysThere.exe</div>
+            <div class="loader-track">
+                <div id="loaderBar"></div>
+            </div>
+            <div id="loaderStatus">FETCHING NODE...</div>
+    <div id="loaderBarContainer">
+        <div id="loaderBar"></div>
+    </div>
+
+    <div id="clickPrompt" style="font-family: 'Arial Black', sans-serif; font-size: 11px; letter-spacing: 5px; color: #ffffff; margin-top: 35px; opacity: 0; transition: opacity 0.8s ease; text-transform: uppercase; text-align: center;">
+        CLICK ANYWHERE TO ENTER
+    </div>
+        </div>
+    </div>
+
+    <div class="grain-overlay"></div>
+
+   <div id="heartMenu">
+    <svg viewBox="0 0 800 800" width="100%" height="100%">
+        <defs>
+            <path id="topTrack" d="M 150,400 A 250,250 0 0,1 650,400" fill="none" />
+            <path id="bottomTrack" d="M 150,400 A 250,250 0 0,0 650,400" fill="none" />
+        </defs>
+        
+        <g id="motionMenuTrigger" style="cursor: none !important;">
+            <a href="motion.html" class="menu-link">
+                <text class="menu-item"><textPath href="#topTrack">In Motion</textPath></text>
+            </a>
+        </g>
+        
+        <a href="stasis.html" class="menu-link">
+            <text class="menu-item"><textPath href="#topTrack">In Stasis</textPath></text>
+        </a>
+        <a href="dialogue.html" class="menu-link">
+            <text class="menu-item"><textPath href="#bottomTrack">The Dialogue</textPath></text>
+        </a>
+        <a href="origin.html" class="menu-link">
+            <text class="menu-item"><textPath href="#bottomTrack">The Origin</textPath></text>
+        </a>
+    </svg>
+</div>
+
+    <div id="promptBox">open?</div>
+
+    <div id="blobCursor">
+        <div class="crosshair-core"></div>
+        <div class="crosshair-ring"></div>
+    </div>
+
+    <!-- SYSTEM INTERFACE DOCK -->
+<div class="system-border-dock">
+    <!-- LEFT SIDE: AUDIO CONTROLLER -->
+    <div class="dock-section dock-left">
+        <button id="audioToggleBtn" class="audio-toggle-btn" aria-label="Toggle Audio Node">
+            <span class="audio-status-text">AUDIO: MUTED</span>
+            <span class="audio-waves" id="audioWaves">
+                <span></span><span></span><span></span>
+            </span>
+        </button>
+    </div>
+
+    <!-- CENTER SIDE: PROJECT LOGO-LINE -->
+    <div class="dock-section dock-center">
+        <span class="dock-project-title">WHAT WAS ALWAYS THERE</span>
+    </div>
+
+    <!-- RIGHT SIDE: SOCIAL ACCESS GRAPH -->
+    <div class="dock-section dock-right">
+        <button id="tutorialReplayBtn" class="social-link-node tutorial-replay-btn" aria-label="Replay tutorial" title="Replay tutorial">?</button>
+    </div>
+</div>
+<div class="system-border-dock top-dock">
+    <div class="dock-section dock-left">
+        <span class="dock-identity-text">TRAN BAO ANH // ANDER</span>
+    </div>
+
+    <div class="dock-section dock-center">
+        <span class="dock-project-title">PORTFOLIO</span>
+    </div>
+
+    <div class="dock-section dock-right">
+        <span class="nav-link-node">CREATIVITY SCHOLARSHIP SUBMISSION</span>
+    </div>
+</div>
+
+<div id="youtubeAudioPlayer" style="display: none;"></div>
+
+<script>
+    // Completely blocks out structural initialization only if the whole tour is finalized
+    if (parseInt(sessionStorage.getItem('tutorialProgress') || '0') >= 8) {
+        document.write('<style>#tutorialDialogueContainer { display: none !important; }</style>');
+    }
+</script>
+
+<div id="pageTransitionOverlay"></div>
+<div id="tutorialDialogueContainer">
+    <div id="tutorialText"></div>
+    <div id="tutorialPrompt"></div>
+</div>
+
+
+    <svg id="trailOverlay">
+        <defs>
+            <linearGradient id="trailGradient">
+                <stop offset="0%" stop-color="#ff1100" stop-opacity="0.8"/>
+                <stop offset="100%" stop-color="#330000" stop-opacity="0.0"/>
+            </linearGradient>
+        </defs>
+        <polygon id="glowingTrailPolygon" fill="url(#trailGradient)"/>
+    </svg>
+    <div class="vignette-overlay"></div>
+    <script type="module" src="script.js"></script>
+</body>
+</html>

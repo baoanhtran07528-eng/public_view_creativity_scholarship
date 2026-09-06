@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Animated Flipbook - Portfolio</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg-dark: #050505;
+            --paper: #121214; /* Dark monolith page base */
+            --accent-glow: #ff4500; /* Fire/Orange emissive */
+            --accent-red: #9a1518; /* Deep crimson */
+            --ui-text: #ffffff;
+            --ui-muted: rgba(255, 255, 255, 0.4);
+            --book-zoom: 1;
+            --book-pan-x: 0px;
+            --book-pan-y: 0px;
+            
+            /* ADJUSTED: Increased the scale parameters for a much larger display presence */
+            --single-page-width: clamp(320px, 46vw, 1100px);
+            --book-height: calc(var(--single-page-width) * (2480 / 3508));
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.4rem;
+            font-family: "Courier New", Courier, monospace; 
+            background: 
+                radial-gradient(circle at bottom, rgba(154, 21, 24, 0.35) 0%, transparent 60%),
+                var(--bg-dark);
+            overflow: hidden;
+            position: relative;
+            letter-spacing: 0.1em;
+            cursor: none !important;
+        }
+
+        a, button, .page-side {
+            cursor: none !important;
+        }
+
+        #blobCursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 22px;
+            height: 22px;
+            pointer-events: none;
+            z-index: 2000;
+            mix-blend-mode: screen;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            will-change: transform;
+        }
+
+        #blobCursor::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 6px rgba(255, 69, 0, 0.5);
+            transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #blobCursor::after {
+            content: "";
+            position: absolute;
+            width: 1px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 6px rgba(255, 69, 0, 0.5);
+            transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .crosshair-core {
+            position: absolute;
+            width: 2.5px;
+            height: 2.5px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ffffff;
+            z-index: 2;
+            transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #blobCursor .crosshair-ring {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 1px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
+            animation: targetSpin 8s linear infinite;
+            z-index: 1;
+            transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #blobCursor.is-clicked::before { transform: scaleX(1.4); }
+        #blobCursor.is-clicked::after { transform: scaleY(1.4); }
+        #blobCursor.is-clicked .crosshair-core { transform: scale(1.6); }
+        #blobCursor.is-clicked .crosshair-ring { transform: scale(1.35); }
+
+        @keyframes targetSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Shared page chrome */
+        .shared-screen-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(6, 8, 12, 0.82);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .shared-screen-bar.bottom-bar {
+            top: auto;
+            bottom: 0;
+            border-bottom: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 20px 40px;
+        }
+
+        .shared-screen-bar .bar-link,
+        .shared-screen-bar .bar-title,
+        .shared-screen-bar .bar-meta {
+            font-family: monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .shared-screen-bar .bar-link {
+            color: var(--ui-text);
+            text-decoration: none;
+            letter-spacing: 2px;
+            transition: color 180ms ease;
+        }
+
+        .shared-screen-bar .bar-link:hover {
+            color: #f4f1e6;
+        }
+
+        .shared-screen-bar .bar-title,
+        .shared-screen-bar .bar-meta {
+            color: var(--ui-muted);
+            letter-spacing: 3px;
+        }
+
+        /* Controls Panel - Sharp corners, terminal aesthetic */
+        .controls {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem; /* Reduced slightly to give the book more room */
+            padding: 0.5rem 1.5rem;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            z-index: 20;
+            font-size: 0.8rem;
+        }
+
+        .controls button {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
+            color: var(--ui-text);
+            font-family: inherit;
+            padding: 0.5rem 1rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 180ms ease;
+        }
+
+        .controls button:hover:not(:disabled) {
+            border-color: var(--accent-glow);
+            color: var(--accent-glow);
+            box-shadow: 0 0 10px rgba(255, 69, 0, 0.3);
+        }
+
+        .controls button:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+        }
+
+        .status {
+            min-width: 80px;
+            text-align: center;
+            color: var(--ui-text);
+            font-weight: bold;
+        }
+
+        .progress-track {
+            width: 150px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--accent-glow);
+            box-shadow: 0 0 8px var(--accent-glow);
+            transition: width 260ms ease;
+        }
+
+        /* The dynamic centering shell wrapper */
+        .book-shell {
+            width: calc(var(--single-page-width) * 2);
+            height: var(--book-height);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform;
+            touch-action: none;
+        }
+
+        .book-shell.is-panning {
+            transition: none;
+        }
+
+        .book-shell.viewing-front-cover { transform: translate(calc(-25% + var(--book-pan-x)), var(--book-pan-y)) scale(var(--book-zoom)); }
+        .book-shell.viewing-back-cover { transform: translate(calc(25% + var(--book-pan-x)), var(--book-pan-y)) scale(var(--book-zoom)); }
+        .book-shell.viewing-spread { transform: translate(var(--book-pan-x), var(--book-pan-y)) scale(var(--book-zoom)); }
+
+        .zoom-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .help-btn {
+            min-width: 2.1rem;
+            padding: 0.5rem 0.65rem;
+            font-weight: bold;
+        }
+
+        .guide-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .guide-overlay.is-open {
+            display: flex;
+        }
+
+        .guide-card {
+            width: min(560px, 92vw);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(8, 10, 14, 0.94);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            padding: 1rem 1.2rem;
+            color: var(--ui-text);
+            letter-spacing: 0.06em;
+            cursor: default;
+        }
+
+        .guide-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.9rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: var(--ui-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            padding-bottom: 0.6rem;
+        }
+
+        .guide-close {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            color: var(--ui-text);
+            padding: 0.25rem 0.5rem;
+            font-family: inherit;
+            text-transform: uppercase;
+        }
+
+        .guide-list {
+            list-style: none;
+            display: grid;
+            gap: 0.55rem;
+            font-size: 0.78rem;
+            line-height: 1.5;
+        }
+
+        .guide-list strong {
+            color: #ffb072;
+            font-weight: 700;
+        }
+
+        .zoom-label {
+            color: var(--ui-muted);
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            min-width: 4.4rem;
+            text-align: right;
+        }
+
+        .zoom-slider {
+            width: 120px;
+            accent-color: var(--accent-glow);
+        }
+
+        .book {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            perspective: 3000px;
+            transform-style: preserve-3d;
+        }
+
+        /* NEW: Soft backdrop glow behind the active layout element */
+        .book::before {
+            content: "";
+            position: absolute;
+            inset: -40px;
+            background: radial-gradient(circle, rgba(154, 21, 24, 0.2) 0%, transparent 75%);
+            filter: blur(30px);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .spread {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            top: 0;
+            right: 0;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            transition: transform 0.85s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform;
+        }
+
+        .spread.flipped {
+            transform: rotateY(-180deg);
+        }
+
+        .page-side {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            backface-visibility: hidden;
+            user-select: none;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .page-side.front {
+            background: var(--paper);
+            box-shadow: inset 4px 0 30px rgba(0,0,0,0.6), 5px 6px 25px rgba(0,0,0,0.7);
+        }
+
+        .page-side.back {
+            background: #16161a;
+            transform: rotateY(180deg);
+            box-shadow: inset -4px 0 30px rgba(0,0,0,0.6), -5px 6px 25px rgba(0,0,0,0.7);
+        }
+
+        /* Spine Shadow / Red Emissive Spine Effect */
+        .page-side.front::after {
+            content: "";
+            position: absolute;
+            left: 0; top: 0; bottom: 0; width: 40px;
+            background: linear-gradient(to right, rgba(154, 21, 24, 0.4), rgba(0,0,0,0.5), transparent);
+            pointer-events: none;
+        }
+
+        .page-side.back::after {
+            content: "";
+            position: absolute;
+            right: 0; top: 0; bottom: 0; width: 40px;
+            background: linear-gradient(to left, rgba(154, 21, 24, 0.4), rgba(0,0,0,0.5), transparent);
+            pointer-events: none;
+        }
+
+        /* Monolith Sci-Fi Style Covers */
+        .cover-front {
+            background: linear-gradient(135deg, #0d0d0f 0%, #1a0405 100%) !important;
+            border-right: 2px solid var(--accent-glow) !important;
+        }
+        .cover-back {
+            background: linear-gradient(135deg, #1a0405 0%, #0d0d0f 100%) !important;
+            border-left: 2px solid var(--accent-glow) !important;
+        }
+
+        .page-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            filter: brightness(0.9) contrast(1.1);
+            -webkit-user-drag: none;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* Bottom Status UI line */
+        .footer-ui {
+            position: absolute;
+            bottom: 1rem;
+            font-size: 0.65rem;
+            color: var(--ui-muted);
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+            :root { --single-page-width: 85vw; }
+            body { padding: 0.5rem; }
+            .header-ui { position: static; margin-bottom: 1rem; justify-content: center; gap: 2rem;}
+            .controls { flex-wrap: wrap; justify-content: center; margin-bottom: 1rem;}
+            .progress-track { width: 100px; }
+            .zoom-controls { width: 100%; justify-content: center; margin-left: 0; }
+            .book-shell.viewing-front-cover, .book-shell.viewing-back-cover { transform: translate(var(--book-pan-x), var(--book-pan-y)) scale(var(--book-zoom)); }
+        }
+    </style>
+    <link rel="stylesheet" href="chrome.css">
+</head>
+<body>
+
+    <div id="blobCursor">
+        <div class="crosshair-core"></div>
+        <div class="crosshair-ring"></div>
+    </div>
+
+    <header class="shared-screen-bar">
+        <a href="index.html" class="bar-link">← HOME</a>
+        <div class="bar-title">IN STASIS</div>
+    </header>
+
+    <div class="controls">
+        <button id="prevPageBtn" type="button">Prev</button>
+        <div class="status" id="pageStatus">0 / 7</div>
+        <div class="progress-track" aria-hidden="true">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <button id="nextPageBtn" type="button">Next</button>
+
+        <div class="zoom-controls">
+            <span class="zoom-label" id="zoomLabel">Zoom 100%</span>
+            <button id="zoomOutBtn" type="button" aria-label="Zoom out">-</button>
+            <input id="zoomSlider" class="zoom-slider" type="range" min="100" max="180" step="5" value="100" aria-label="Book zoom">
+            <button id="zoomInBtn" type="button" aria-label="Zoom in">+</button>
+            <button id="resetBookBtn" type="button" aria-label="Reset view">Reset</button>
+            <button id="guideBtn" class="help-btn" type="button" aria-label="Open interaction guide">?</button>
+        </div>
+    </div>
+
+    <div id="guideOverlay" class="guide-overlay" aria-hidden="true">
+        <div class="guide-card" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+            <div class="guide-header">
+                <span id="guideTitle">Interaction Guide</span>
+                <button id="guideCloseBtn" class="guide-close" type="button" aria-label="Close guide">Close</button>
+            </div>
+            <ul class="guide-list">
+                <li><strong>Flip pages:</strong> click on a page side to turn forward or backward.</li>
+                <li><strong>Move view:</strong> hold Space and drag with left click.</li>
+                <li><strong>Zoom:</strong> use the slider, + / - buttons, or keyboard + / -.</li>
+                <li><strong>Reset view:</strong> Reset returns zoom and position only (does not flip pages).</li>
+                <li><strong>Quick navigation:</strong> Arrow Right for next spread, Arrow Left for previous spread.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="book-shell viewing-front-cover" id="bookShell">
+        <div class="book" id="book">
+            
+            <div class="spread" style="z-index: 7;">
+                <div class="page-side front cover-front">
+                    <img class="page-image" alt="" />
+                </div>
+                <div class="page-side back">
+                    <img class="page-image" alt="" />
+                </div>
+            </div>
+
+            <div class="spread" style="z-index: 6;">
+                <div class="page-side front">
+                    <img class="page-image" alt="" />
+                </div>
+                <div class="page-side back">
+                    <img class="page-image" alt="" />
+                </div>
+            </div>
+
+            <div class="spread" style="z-index: 5;">
+                <div class="page-side front">
+                    <img class="page-image" alt="" />
+                </div>
+                <div class="page-side back">
+                    <img class="page-image" alt="" />
+                </div>
+            </div>
+
+            <div class="spread" style="z-index: 4;">
+                <div class="page-side front">
+                    <img class="page-image" alt="" />
+                </div>
+                <div class="page-side back">
+                    <img class="page-image" alt="" />
+                </div>
+            </div>
+
+            <div class="spread" style="z-index: 3;">
+                <div class="page-side front">
+                    <img class="page-image" alt="" />
+                </div>
+                <div class="page-side back">
+                    <img class="page-image" alt="" />
+                </div>
+            </div>
+
+            <div class="spread" style="z-index: 2;">
+                <div class="page-side front">
+                    <img class="page-image" alt="" />
+                </div>
+                <div class="page-side back">
+                    <img class="page-image" alt="" />
+                </div>
+            </div>
+
+            <div class="spread" style="z-index: 1;">
+                <div class="page-side front">
+                    <img class="page-image" alt="" />
+                </div>
+                <div class="page-side back cover-back">
+                    <img class="page-image" alt="" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="shared-screen-bar bottom-bar">
+        <span class="bar-meta">WHAT WAS ALWAYS THERE</span>
+        <span class="bar-meta">STASIS / FLIPBOOK</span>
+    </footer>
+
+    <script>
+        // Advance the guided tutorial when this page is reached.
+        if (sessionStorage.getItem('tutorialProgress') === '4') {
+            sessionStorage.setItem('tutorialProgress', '5');
+        }
+
+        const bookShell = document.getElementById('bookShell');
+        const spreads = Array.from(document.querySelectorAll('.spread'));
+        const pageImages = Array.from(document.querySelectorAll('.page-image'));
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const resetBookBtn = document.getElementById('resetBookBtn');
+        const pageStatus = document.getElementById('pageStatus');
+        const progressFill = document.getElementById('progressFill');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const zoomLabel = document.getElementById('zoomLabel');
+        const guideBtn = document.getElementById('guideBtn');
+        const guideOverlay = document.getElementById('guideOverlay');
+        const guideCloseBtn = document.getElementById('guideCloseBtn');
+
+        const myPortfolioImages = [
+            "artbook/front.png",  
+            "artbook/1.png",      
+            "artbook/2.png",      
+            "artbook/3.png",      
+            "artbook/4.png",      
+            "artbook/5.png",      
+            "artbook/6.png",      
+            "artbook/7.png",      
+            "artbook/8.png",      
+            "artbook/9.png",      
+            "artbook/10.png",      
+            "artbook/11.png",      
+            "artbook/12.png",      
+            "artbook/back.png"    
+        ];
+
+        pageImages.forEach((img, index) => {
+            img.draggable = false;
+            img.addEventListener('dragstart', (event) => event.preventDefault());
+            if (myPortfolioImages[index]) {
+                img.src = myPortfolioImages[index];
+            }
+        });
+
+        let currentSpread = 0;
+        const MIN_ZOOM = 100;
+        const MAX_ZOOM = 180;
+        const ZOOM_STEP = 5;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let panStartX = 0;
+        let panStartY = 0;
+        let pointerStartX = 0;
+        let pointerStartY = 0;
+        let suppressNextFlip = false;
+        let isSpaceHeld = false;
+
+        function applyPan() {
+            document.documentElement.style.setProperty('--book-pan-x', `${panX}px`);
+            document.documentElement.style.setProperty('--book-pan-y', `${panY}px`);
+        }
+
+        function getPanBounds() {
+            const zoom = Number(zoomSlider?.value || MIN_ZOOM) / 100;
+            const xBound = Math.max(0, (zoom - 1) * window.innerWidth * 0.45);
+            const yBound = Math.max(0, (zoom - 1) * window.innerHeight * 0.35);
+            return { xBound, yBound };
+        }
+
+        function clampPan() {
+            const { xBound, yBound } = getPanBounds();
+            panX = Math.max(-xBound, Math.min(xBound, panX));
+            panY = Math.max(-yBound, Math.min(yBound, panY));
+        }
+
+        function setPan(nextX, nextY) {
+            panX = nextX;
+            panY = nextY;
+            clampPan();
+            applyPan();
+        }
+
+        function setZoom(percent) {
+            const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, percent));
+            document.documentElement.style.setProperty('--book-zoom', `${clamped / 100}`);
+            if (zoomSlider) zoomSlider.value = String(clamped);
+            if (zoomLabel) zoomLabel.textContent = `Zoom ${clamped}%`;
+            clampPan();
+            applyPan();
+        }
+
+        function updateUI() {
+            pageStatus.textContent = `${currentSpread} / ${spreads.length}`;
+            progressFill.style.width = `${(currentSpread / spreads.length) * 100}%`;
+            prevPageBtn.disabled = currentSpread === 0;
+            nextPageBtn.disabled = currentSpread >= spreads.length;
+
+            bookShell.classList.remove('viewing-front-cover', 'viewing-back-cover', 'viewing-spread');
+
+            if (currentSpread === 0) {
+                bookShell.classList.add('viewing-front-cover');
+            } else if (currentSpread === spreads.length) {
+                bookShell.classList.add('viewing-back-cover');
+            } else {
+                bookShell.classList.add('viewing-spread');
+            }
+        }
+
+        function goToSpread(index) {
+            if (index < 0 || index > spreads.length) return;
+            
+            spreads.forEach((spread, i) => {
+                if (i < index) {
+                    spread.classList.add('flipped');
+                    spread.style.zIndex = 10 + i;
+                } else {
+                    spread.classList.remove('flipped');
+                    spread.style.zIndex = 10 - i;
+                }
+            });
+            currentSpread = index;
+            updateUI();
+        }
+
+        spreads.forEach((spread, index) => {
+            const frontSide = spread.querySelector('.front');
+            const backSide = spread.querySelector('.back');
+
+            frontSide.addEventListener('click', (e) => {
+                if (suppressNextFlip) return;
+                e.stopPropagation();
+                goToSpread(index + 1);
+            });
+
+            backSide.addEventListener('click', (e) => {
+                if (suppressNextFlip) return;
+                e.stopPropagation();
+                goToSpread(index);
+            });
+        });
+
+        prevPageBtn.addEventListener('click', () => goToSpread(currentSpread - 1));
+        nextPageBtn.addEventListener('click', () => goToSpread(currentSpread + 1));
+        resetBookBtn.addEventListener('click', () => {
+            setZoom(100);
+            setPan(0, 0);
+        });
+
+        zoomOutBtn?.addEventListener('click', () => {
+            setZoom(Number(zoomSlider.value) - ZOOM_STEP);
+        });
+
+        zoomInBtn?.addEventListener('click', () => {
+            setZoom(Number(zoomSlider.value) + ZOOM_STEP);
+        });
+
+        zoomSlider?.addEventListener('input', () => {
+            setZoom(Number(zoomSlider.value));
+        });
+
+        function setGuideOpen(isOpen) {
+            if (!guideOverlay) return;
+            guideOverlay.classList.toggle('is-open', isOpen);
+            guideOverlay.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        }
+
+        guideBtn?.addEventListener('click', () => {
+            const currentlyOpen = guideOverlay?.classList.contains('is-open');
+            setGuideOpen(!currentlyOpen);
+        });
+
+        guideCloseBtn?.addEventListener('click', () => {
+            setGuideOpen(false);
+        });
+
+        guideOverlay?.addEventListener('click', (event) => {
+            if (event.target === guideOverlay) {
+                setGuideOpen(false);
+            }
+        });
+
+        bookShell.addEventListener('pointerdown', (event) => {
+            if (event.button !== 0 || !isSpaceHeld) return;
+            event.preventDefault();
+            isPanning = true;
+            pointerStartX = event.clientX;
+            pointerStartY = event.clientY;
+            panStartX = panX;
+            panStartY = panY;
+            suppressNextFlip = true;
+            bookShell.classList.add('is-panning');
+            bookShell.setPointerCapture(event.pointerId);
+        });
+
+        bookShell.addEventListener('pointermove', (event) => {
+            if (!isPanning) return;
+            event.preventDefault();
+            const dx = event.clientX - pointerStartX;
+            const dy = event.clientY - pointerStartY;
+            setPan(panStartX + dx, panStartY + dy);
+        });
+
+        bookShell.addEventListener('pointerup', (event) => {
+            if (!isPanning) return;
+            isPanning = false;
+            bookShell.classList.remove('is-panning');
+            bookShell.releasePointerCapture(event.pointerId);
+            requestAnimationFrame(() => {
+                suppressNextFlip = false;
+            });
+        });
+
+        bookShell.addEventListener('pointercancel', () => {
+            isPanning = false;
+            bookShell.classList.remove('is-panning');
+            suppressNextFlip = false;
+        });
+
+        window.addEventListener('resize', () => {
+            clampPan();
+            applyPan();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                isSpaceHeld = true;
+                return;
+            }
+
+            if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                goToSpread(currentSpread + 1);
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                goToSpread(currentSpread - 1);
+            } else if (event.key === '+' || event.key === '=') {
+                event.preventDefault();
+                setZoom(Number(zoomSlider.value) + ZOOM_STEP);
+            } else if (event.key === '-' || event.key === '_') {
+                event.preventDefault();
+                setZoom(Number(zoomSlider.value) - ZOOM_STEP);
+            } else if (event.key === 'Escape') {
+                setGuideOpen(false);
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            if (event.code === 'Space') {
+                isSpaceHeld = false;
+            }
+        });
+
+        window.addEventListener('blur', () => {
+            isSpaceHeld = false;
+        });
+
+        const cursor = document.getElementById('blobCursor');
+        if (cursor) {
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.transform = `translate3d(${e.clientX - 11}px, ${e.clientY - 11}px, 0)`;
+            });
+
+            document.addEventListener('mousedown', () => {
+                cursor.classList.add('is-clicked');
+                clearTimeout(cursor._clickTimeout);
+                cursor._clickTimeout = setTimeout(() => {
+                    cursor.classList.remove('is-clicked');
+                }, 120);
+            });
+        }
+
+        setZoom(100);
+        applyPan();
+        updateUI();
+    </script>
+</body>
+</html>

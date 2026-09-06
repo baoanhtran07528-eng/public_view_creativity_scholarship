@@ -1,0 +1,81 @@
+/* Unified top/bottom chrome for all portfolio pages */
+.frame-header,
+.shared-screen-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    border-bottom: 1px solid var(--border-line, rgba(255, 255, 255, 0.08));
+    background: rgba(6, 8, 12, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.shared-screen-bar.bottom-bar,
+body > footer {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    border-bottom: none;
+    border-top: 1px solid var(--border-line, rgba(255, 255, 255, 0.08));
+    background: rgba(6, 8, 12, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.back-nav,
+.shared-screen-bar .bar-link {
+    font-family: monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-main, rgba(255, 255, 255, 0.85));
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: color 0.3s ease;
+}
+
+.back-nav:hover,
+.shared-screen-bar .bar-link:hover {
+    color: var(--cream-accent, #f4f1e6);
+}
+
+.page-title,
+.shared-screen-bar .bar-title,
+.shared-screen-bar .bar-meta,
+.footer-stamp {
+    font-family: monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.page-title,
+.shared-screen-bar .bar-title,
+.shared-screen-bar .bar-meta {
+    color: var(--text-muted, rgba(245, 246, 248, 0.68));
+}
+
+.footer-stamp {
+    color: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 900px) {
+    .frame-header,
+    .shared-screen-bar,
+    .shared-screen-bar.bottom-bar,
+    body > footer {
+        padding: 20px;
+    }
+}
